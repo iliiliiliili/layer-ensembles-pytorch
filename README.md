@@ -7,6 +7,7 @@ Deep Ensembles, as a type of Bayesian Neural Networks, can be used to estimate u
 ## Run
 
 Use `run_example.sh` to train and evaluate a single model on MNIST.
+The corresponding reproducible capsule is available at [CodeOcean](https://codeocean.com/capsule/1619032/tree).
 ## Citation
 
 If you use this work for your research, you can cite it as:
