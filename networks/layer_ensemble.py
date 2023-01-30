@@ -183,7 +183,7 @@ class LayerEnsembleConvolutionTranspose(LayerEnsembleBase):
 
 
 class LayerEnsembleNetwork(Network):
-    def __init__(self, network_creator, prior_scale, **kwargs) -> None:
+    def __init__(self, network_creator, prior_scale, average_results=False, **kwargs) -> None:
         super().__init__()
         self.prior_scale = prior_scale
 
@@ -198,6 +198,8 @@ class LayerEnsembleNetwork(Network):
         self.prior_collection = LayerEnsembleBase.collect()
 
         self.num_ensembles = [a.num_ensemble for a in self.network_collection]
+        self.average_results = average_results
+        self.single_model_output = average_results
 
     def forward(self, x, samples=10):
         sampled_models = self.sampler(samples)
@@ -216,7 +218,11 @@ class LayerEnsembleNetwork(Network):
 
             return result
 
-        result = torch.mean(torch.stack([output_with_prior(self.network, self.prior, sample) for sample in samples]), dim=0)
+        result = [output_with_prior(self.network, self.prior, sample) for sample in samples]
+
+        if self.average_results:
+            result = torch.mean(torch.stack(result), dim=0)
+
         return result
 
     def select_sample(self, collection, sample):

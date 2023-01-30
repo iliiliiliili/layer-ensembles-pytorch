@@ -10,6 +10,7 @@ from metrics import MeanStdMetric, AverageMetric
 class Network(nn.Module):
     def __init__(self) -> None:
         super().__init__()
+        self.single_model_output = True
 
     def prepare_train(
         self,
@@ -41,12 +42,19 @@ class Network(nn.Module):
         average_loss = 0
         average_output = 0
 
-        for step in range(samples):
-            output = self(input)
-            loss = self.loss_func(output, target, self, self.batch) if self.loss_uses_network else self.loss_func(output, target)
+        if self.single_model_output:
+            for step in range(samples):
+                output = self(input)
+                loss = self.loss_func(output, target, self, self.batch) if self.loss_uses_network else self.loss_func(output, target)
+                average_loss += loss
+                average_output += output
+        else:
+            outputs = self(input, samples=samples)
 
-            average_loss += loss
-            average_output += output
+            for output in outputs:
+                loss = self.loss_func(output, target, self, self.batch) if self.loss_uses_network else self.loss_func(output, target)
+                average_loss += loss
+                average_output += output
         
         average_loss /= samples
         average_output /= samples
@@ -152,23 +160,43 @@ class Network(nn.Module):
         average_output = None
         average_loss = None
 
-        for step in range(samples):
-            output = self(input)
-            loss = (
-                (self.loss_func(output, target, self, self.batch) if self.loss_uses_network else self.loss_func(output, target)).item()
-                if hasattr(self, "loss_func")
-                else None
-            )
 
-            if average_output is None:
-                average_output = output
-            else:
-                average_output += output
-            if average_loss is None:
-                average_loss = loss
-            else:
-                average_loss += loss
-        
+        if self.single_model_output:
+            for step in range(samples):
+                output = self(input)
+                loss = (
+                    (self.loss_func(output, target, self, self.batch) if self.loss_uses_network else self.loss_func(output, target)).item()
+                    if hasattr(self, "loss_func")
+                    else None
+                )
+
+                if average_output is None:
+                    average_output = output
+                else:
+                    average_output += output
+                if average_loss is None:
+                    average_loss = loss
+                else:
+                    average_loss += loss
+        else:
+            outputs = self(input, samples=samples)
+
+            for output in outputs:
+                loss = (
+                    (self.loss_func(output, target, self, self.batch) if self.loss_uses_network else self.loss_func(output, target)).item()
+                    if hasattr(self, "loss_func")
+                    else None
+                )
+
+                if average_output is None:
+                    average_output = output
+                else:
+                    average_output += output
+                if average_loss is None:
+                    average_loss = loss
+                else:
+                    average_loss += loss
+
         average_output /= samples
         
         if average_loss is not None:
